@@ -1,0 +1,10 @@
+# R history and session data
+.Rhistory
+.RData
+.Rapp.history
+
+# RStudio project user settings
+.Rproj.user/
+
+# Mac system file
+.DS_Store

@@ -1,0 +1,290 @@
+GEO_Accession (exp),diagnosis,sex,AGE
+GSM3577568,Alzheimer's disease,female,93
+GSM3577569,Alzheimer's disease,male,77
+GSM3577570,Alzheimer's disease,male,92
+GSM3577571,Alzheimer's disease,male,85
+GSM3577572,Alzheimer's disease,male,83
+GSM3577573,Alzheimer's disease,male,85
+GSM3577574,Alzheimer's disease,female,93
+GSM3577575,Alzheimer's disease,male,96
+GSM3577576,Alzheimer's disease,female,96
+GSM3577577,Alzheimer's disease,female,88
+GSM3577578,Alzheimer's disease,male,97
+GSM3577579,Alzheimer's disease,male,79
+GSM3577580,control,male,76
+GSM3577581,Alzheimer's disease,male,89
+GSM3577582,Alzheimer's disease,female,89
+GSM3577583,control,female,78
+GSM3577584,control,male,80
+GSM3577585,Alzheimer's disease,female,85
+GSM3577586,Alzheimer's disease,female,64
+GSM3577587,control,female,95
+GSM3577588,Alzheimer's disease,male,82
+GSM3577589,control,female,83
+GSM3577590,Alzheimer's disease,male,91
+GSM3577591,Alzheimer's disease,male,77
+GSM3577592,Alzheimer's disease,female,96
+GSM3577593,Alzheimer's disease,male,80
+GSM3577594,Alzheimer's disease,female,82
+GSM3577595,control,male,82
+GSM3577596,Alzheimer's disease,male,90
+GSM3577597,Alzheimer's disease,male,80
+GSM3577598,Alzheimer's disease,male,86
+GSM3577599,control,female,87
+GSM3577600,Alzheimer's disease,female,93
+GSM3577601,Alzheimer's disease,male,88
+GSM3577602,Alzheimer's disease,male,86
+GSM3577603,control,female,90
+GSM3577604,control,female,99
+GSM3577605,Alzheimer's disease,NA,NA
+GSM3577606,Alzheimer's disease,male,82
+GSM3577607,Alzheimer's disease,female,88
+GSM3577608,Alzheimer's disease,male,85
+GSM3577609,Alzheimer's disease,female,65
+GSM3577610,Alzheimer's disease,male,85
+GSM3577611,Alzheimer's disease,male,86
+GSM3577612,Alzheimer's disease,male,78
+GSM3577613,Alzheimer's disease,male,74
+GSM3577614,control,male,87
+GSM3577615,Alzheimer's disease,female,103
+GSM3577616,Alzheimer's disease,female,82
+GSM3577617,Alzheimer's disease,female,77
+GSM3577618,Alzheimer's disease,male,86
+GSM3577619,Alzheimer's disease,female,96
+GSM3577620,Alzheimer's disease,male,90
+GSM3577621,Alzheimer's disease,male,79
+GSM3577622,control,male,89
+GSM3577623,Alzheimer's disease,male,78
+GSM3577624,control,male,94
+GSM3577625,Alzheimer's disease,female,86
+GSM3577626,Alzheimer's disease,female,86
+GSM3577627,Alzheimer's disease,female,86
+GSM3577628,Alzheimer's disease,male,83
+GSM3577629,control,female,80
+GSM3577630,Alzheimer's disease,male,86
+GSM3577631,Alzheimer's disease,male,85
+GSM3577632,Alzheimer's disease,female,88
+GSM3577633,Alzheimer's disease,male,70
+GSM3577634,Alzheimer's disease,male,81
+GSM3577635,control,male,80
+GSM3577636,Alzheimer's disease,female,97
+GSM3577637,control,female,85
+GSM3577638,Alzheimer's disease,male,77
+GSM3577639,Alzheimer's disease,female,91
+GSM3577640,Alzheimer's disease,male,89
+GSM3577641,control,female,91
+GSM3577642,control,male,83
+GSM3577643,Alzheimer's disease,male,82
+GSM3577644,control,male,81
+GSM3577645,Alzheimer's disease,male,75
+GSM3577646,Alzheimer's disease,male,95
+GSM3577647,control,female,79
+GSM3577648,Alzheimer's disease,male,92
+GSM3577649,Alzheimer's disease,female,79
+GSM3577650,Alzheimer's disease,female,90
+GSM3577651,control,female,89
+GSM3577652,Alzheimer's disease,female,96
+GSM3577653,Alzheimer's disease,male,82
+GSM3577654,Alzheimer's disease,female,91
+GSM3577655,control,female,96
+GSM3577656,Alzheimer's disease,male,81
+GSM3577657,control,female,84
+GSM3577658,Alzheimer's disease,female,86
+GSM3577659,Alzheimer's disease,male,69
+GSM3577660,Alzheimer's disease,male,76
+GSM3577661,control,female,80
+GSM3577662,Alzheimer's disease,male,76
+GSM3577663,control,male,81
+GSM3577664,Alzheimer's disease,male,82
+GSM3577665,Alzheimer's disease,male,88
+GSM3577666,Alzheimer's disease,male,89
+GSM3577667,Alzheimer's disease,female,85
+GSM3577668,Alzheimer's disease,male,81
+GSM3577669,Alzheimer's disease,female,70
+GSM3577670,Alzheimer's disease,female,84
+GSM3577671,control,female,75
+GSM3577672,control,male,92
+GSM3577673,Alzheimer's disease,male,91
+GSM3577674,Alzheimer's disease,male,76
+GSM3577675,Alzheimer's disease,female,81
+GSM3577676,Alzheimer's disease,male,86
+GSM3577677,Alzheimer's disease,male,95
+GSM3577678,control,female,87
+GSM3577679,Alzheimer's disease,female,86
+GSM3577680,Alzheimer's disease,female,86
+GSM3577681,Alzheimer's disease,male,83
+GSM3577682,control,female,87
+GSM3577683,Alzheimer's disease,male,72
+GSM3577684,Alzheimer's disease,female,102
+GSM3577685,control,male,82
+GSM3577686,control,female,86
+GSM3577687,Alzheimer's disease,female,92
+GSM3577688,Alzheimer's disease,male,83
+GSM3577689,control,male,90
+GSM3577690,Alzheimer's disease,male,88
+GSM3577691,control,female,82
+GSM3577692,Alzheimer's disease,female,74
+GSM3577693,Alzheimer's disease,female,85
+GSM3577694,Alzheimer's disease,male,79
+GSM3577695,Alzheimer's disease,male,80
+GSM3577696,Alzheimer's disease,male,77
+GSM3577697,Alzheimer's disease,female,69
+GSM3577698,Alzheimer's disease,male,84
+GSM3577699,control,male,91
+GSM3577700,control,male,81
+GSM3577701,Alzheimer's disease,male,76
+GSM3577702,Alzheimer's disease,female,71
+GSM3577703,control,male,89
+GSM3577704,Alzheimer's disease,male,67
+GSM3577705,Alzheimer's disease,male,81
+GSM3577706,Alzheimer's disease,female,87
+GSM3577707,Alzheimer's disease,male,97
+GSM3577708,Alzheimer's disease,female,94
+GSM3577709,control,male,71
+GSM3577710,control,male,82
+GSM3577711,Alzheimer's disease,female,92
+GSM3577712,Alzheimer's disease,male,82
+GSM3577713,Alzheimer's disease,male,73
+GSM3577714,control,female,103
+GSM3577715,control,male,87
+GSM3577716,Alzheimer's disease,male,76
+GSM3577717,control,male,86
+GSM3577718,Alzheimer's disease,male,76
+GSM3577719,Alzheimer's disease,female,70
+GSM3577720,Alzheimer's disease,male,80
+GSM3577721,Alzheimer's disease,male,87
+GSM3577722,Alzheimer's disease,female,88
+GSM3577723,Alzheimer's disease,female,91
+GSM3577724,Alzheimer's disease,female,98
+GSM3577725,Alzheimer's disease,male,85
+GSM3577726,Alzheimer's disease,male,84
+GSM3577727,Alzheimer's disease,male,65
+GSM3577728,Alzheimer's disease,female,78
+GSM3577729,Alzheimer's disease,female,74
+GSM3577730,Alzheimer's disease,female,91
+GSM3577731,control,female,92
+GSM3577732,Alzheimer's disease,female,61
+GSM3577733,Alzheimer's disease,male,87
+GSM3577734,Alzheimer's disease,female,89
+GSM3577735,control,male,100
+GSM3577736,Alzheimer's disease,male,88
+GSM3577737,Alzheimer's disease,female,74
+GSM3577738,control,male,84
+GSM3577739,Alzheimer's disease,male,76
+GSM3577740,control,male,93
+GSM3577741,control,male,87
+GSM3577742,Alzheimer's disease,female,76
+GSM3577743,Alzheimer's disease,male,84
+GSM3577744,control,female,88
+GSM3577745,control,female,90
+GSM3577746,Alzheimer's disease,female,60
+GSM3577747,Alzheimer's disease,female,97
+GSM3577748,Alzheimer's disease,female,94
+GSM3577749,control,male,86
+GSM3577750,Alzheimer's disease,female,86
+GSM3577751,Alzheimer's disease,female,87
+GSM3577752,control,male,81
+GSM3577753,Alzheimer's disease,male,72
+GSM3577754,Alzheimer's disease,male,81
+GSM3577755,Alzheimer's disease,male,90
+GSM3577756,Alzheimer's disease,male,85
+GSM3577757,Alzheimer's disease,female,85
+GSM3577758,Alzheimer's disease,male,74
+GSM3577759,Alzheimer's disease,male,77
+GSM3577760,Alzheimer's disease,male,85
+GSM3577761,control,female,92
+GSM3577762,control,female,88
+GSM3577763,Alzheimer's disease,male,80
+GSM3577764,Alzheimer's disease,female,87
+GSM3577765,Alzheimer's disease,male,85
+GSM3577766,Alzheimer's disease,female,84
+GSM3577767,control,female,90
+GSM3577768,Alzheimer's disease,male,79
+GSM3577769,Alzheimer's disease,female,66
+GSM3577770,Alzheimer's disease,female,86
+GSM3577771,Alzheimer's disease,female,70
+GSM3577772,Alzheimer's disease,female,60
+GSM3577773,Alzheimer's disease,male,82
+GSM3577774,Alzheimer's disease,female,81
+GSM3577775,control,female,91
+GSM3577776,Alzheimer's disease,male,87
+GSM3577777,Alzheimer's disease,female,85
+GSM3577778,control,male,91
+GSM3577779,control,male,92
+GSM3577780,Alzheimer's disease,female,91
+GSM3577781,Alzheimer's disease,male,75
+GSM3577782,Alzheimer's disease,female,85
+GSM3577783,Alzheimer's disease,female,94
+GSM3577784,Alzheimer's disease,male,81
+GSM3577785,Alzheimer's disease,male,84
+GSM3577786,control,male,79
+GSM3577787,Alzheimer's disease,female,82
+GSM3577788,Alzheimer's disease,female,79
+GSM3577789,control,male,91
+GSM3577790,Alzheimer's disease,male,81
+GSM3577791,Alzheimer's disease,female,86
+GSM3577792,control,male,89
+GSM3577793,control,male,84
+GSM3577794,control,female,99
+GSM3577795,Alzheimer's disease,male,76
+GSM3577796,Alzheimer's disease,female,84
+GSM3577797,Alzheimer's disease,female,92
+GSM3577798,Alzheimer's disease,male,86
+GSM3577799,Alzheimer's disease,female,87
+GSM3577800,Alzheimer's disease,male,89
+GSM3577801,Alzheimer's disease,female,91
+GSM3577802,Alzheimer's disease,female,94
+GSM3577803,Alzheimer's disease,male,90
+GSM3577804,Alzheimer's disease,female,76
+GSM3577805,Alzheimer's disease,male,77
+GSM3577806,Alzheimer's disease,male,82
+GSM3577807,Alzheimer's disease,female,91
+GSM3577808,Alzheimer's disease,male,87
+GSM3577809,Alzheimer's disease,male,91
+GSM3577810,control,female,88
+GSM3577811,Alzheimer's disease,male,87
+GSM3577812,control,female,97
+GSM3577813,Alzheimer's disease,female,91
+GSM3577814,Alzheimer's disease,male,80
+GSM3577815,Alzheimer's disease,male,78
+GSM3577816,Alzheimer's disease,male,84
+GSM3577817,Alzheimer's disease,female,79
+GSM3577818,Alzheimer's disease,male,80
+GSM3577819,control,male,97
+GSM3577820,Alzheimer's disease,male,75
+GSM3577821,Alzheimer's disease,male,87
+GSM3577822,Alzheimer's disease,male,68
+GSM3577823,Alzheimer's disease,female,82
+GSM3577824,Alzheimer's disease,female,83
+GSM3577825,Alzheimer's disease,female,101
+GSM3577826,Alzheimer's disease,male,92
+GSM3577827,Alzheimer's disease,male,73
+GSM3577828,Alzheimer's disease,male,88
+GSM3577829,Alzheimer's disease,male,93
+GSM3577830,Alzheimer's disease,female,77
+GSM3577831,Alzheimer's disease,male,88
+GSM3577832,Alzheimer's disease,female,82
+GSM3577833,Alzheimer's disease,female,82
+GSM3577834,Alzheimer's disease,female,91
+GSM3577835,Alzheimer's disease,male,64
+GSM3577836,control,female,82
+GSM3577837,Alzheimer's disease,female,74
+GSM3577838,Alzheimer's disease,female,91
+GSM3577839,Alzheimer's disease,male,74
+GSM3577840,control,female,82
+GSM3577841,Alzheimer's disease,male,85
+GSM3577842,Alzheimer's disease,female,65
+GSM3577843,control,male,91
+GSM3577844,Alzheimer's disease,female,90
+GSM3577845,Alzheimer's disease,female,86
+GSM3577846,Alzheimer's disease,male,88
+GSM3577847,control,male,90
+GSM3577848,Alzheimer's disease,female,91
+GSM3577849,control,male,80
+GSM3577850,control,female,91
+GSM3577851,control,male,85
+GSM3577852,Alzheimer's disease,male,75
+GSM3577853,Alzheimer's disease,female,86
+GSM3577854,Alzheimer's disease,male,83
+GSM3577855,Alzheimer's disease,female,92
+GSM3577856,Alzheimer's disease,male,78

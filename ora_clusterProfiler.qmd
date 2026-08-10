@@ -1,0 +1,408 @@
+---
+title: "Overrepresentation Analysis with clusterProfiler"
+format: html
+editor: visual
+---
+
+### Install BiocManager, which is used to install and manage Bioconductor packages, if you don't have it already
+
+```{r, results="hide"}
+#if (!require("BiocManager", quietly = TRUE))
+    #install.packages("BiocManager")
+```
+
+### Once BiocManager is installed, you can use it to install clusterProfiler, enrichplot
+
+```{r, results="hide"}
+#For data management
+#install.packages("tidyverse")
+#install.packages("readxl")
+
+#BiocManager::install(c("clusterProfiler", "enrichplot", "ggupset", "msigdbr"))
+
+# For visualisation
+#install.packages("pheatmap")
+#install.packages("RColorBrewer")
+```
+
+### Load the required libraries
+
+```{r, results="hide"}
+# Loading relevant libraries 
+library(tidyverse)        # data manipulation and visualization (ggplot2, dplyr, tidyr, etc.)
+library(RColorBrewer)     # color palettes for plots
+library(pheatmap)         # heatmaps with clustering
+library(clusterProfiler)  # enrichment analysis (ORA and GSEA)
+library(enrichplot)       # visualization of enrichment analysis results
+library(msigdbr)          # molecular signatures database (pathways, biological functions, etc.)
+library(readxl)           # reading Excel files into R
+library(circlize)         # circular/ chord diagrams visualizations
+```
+
+### Set the path to your folder
+
+```{r, results="hide"}
+## Set relevant paths
+base_path <- getwd() # get the current working directory as the root path
+make_path <- function(folder) {
+  path <- file.path(base_path, folder) # build the full path by appending folder name to base path
+  if (!dir.exists(path)) dir.create(path, recursive = TRUE) # create the folder if it doesn't exist
+  path                                      # return the path
+}
+
+in_path  <- make_path("input") # create and store path to the input folder
+out_path <- make_path("output") # create and store path to the output folder
+```
+
+### Upload the results of the DESeq2 analysis to the input folder
+
+```{r}
+df <- read_excel(file.path(in_path, 'male_DEG_GSE125583.top.table.xlsx'))
+genes_in_data <- df$Symbol # extract the gene symbols column from the dataframe as a character vector
+head(df)
+```
+
+### Define the DEGs cutoffs (e.g., log2FoldChange, padj)
+
+```{r}
+
+#Cleaning column names just in case
+colnames(df) <- trimws(colnames(df)) # when reading from Excel files, column names come in with hidden spaces- trimws cleans that up.
+
+df_sig <- df %>%
+  filter(!is.na(padj), !is.na(log2FoldChange)) %>% # remove rows with missing padj or log2FoldChange values
+  mutate(diffexpressed = case_when( # create column diffexpress and classfies according to log2FC value
+    log2FoldChange > 0.5 & padj < 0.05 ~ "UP",
+    log2FoldChange < -0.5 & padj < 0.05 ~ "DOWN",
+    TRUE ~ "NO" # all remaining genes: not significantly differentially expressed
+  )) %>%
+  filter(diffexpressed != "NO") %>% # keep only significantly UP or DOWN regulated genes
+  distinct(Symbol, .keep_all = TRUE) # remove duplicate gene symbols, keeping all columns
+
+# Report, sanity check
+cat("Found", nrow(df_sig), "DEGs\n")
+cat("UP:  ", sum(df_sig$diffexpressed == "UP"), "\n")
+cat("DOWN:", sum(df_sig$diffexpressed == "DOWN"), "\n")
+```
+
+```{r}
+head(df_sig)
+```
+
+### Prepare background gene list
+
+```{r}
+# # extracting all unique, non-missing gene symbols from the full dataset to use as the statistical background (universe) for ORA
+background_genes <- unique(na.omit(df$Symbol))
+
+cat("Number of background genes:", length(background_genes), "\n")
+```
+
+## Molecular signatures database
+
+### To see available collections
+
+```{r}
+# more about msigdbr https://igordot.github.io/msigdbr/articles/msigdbr-intro.html
+# more about Molecular Signatures Database https://www.gsea-msigdb.org/gsea/msigdb/index.jsp 
+msigdbr_collections()
+```
+
+### To see available species collections
+
+```{r}
+msigdbr_species()
+```
+
+### Define the gene sets or molecular signatures
+
+```{r}
+name_of_gene_set <- 'C2_REACT' #simple character variable used as a label of collection
+gene_sets_df <- msigdbr(species = 'Homo sapiens', collection = 'C2', subcollection = 'CP:REACTOME')
+#gene_sets_df is a tibble containing all gene sets from the specified MSigDB 
+head(gene_sets_df)
+```
+
+### Convert gene sets to clusterProfiler format
+
+```{r}
+gene_sets <- gene_sets_df %>%
+  dplyr::select(gs_name, gene_symbol) ## keeps only the gene set name and gene symbol columns, dropping all other metadata columns
+
+cat(paste("Loaded", length(unique(gene_sets$gs_name)), "gene sets\n"))
+```
+
+```{r}
+head(gene_sets)
+```
+
+## Running clusterProfiler
+
+### Settings the variables
+
+```{r}
+name_of_comparison  <- 'male_AD_vs_male_ctrol' ## label for the comparison
+padj_cutoff         <- 0.05 # significance threshold for enriched pathways
+min_geneset_size    <- 5 # # minimum number of DEGs that must overlap with a pathway to be reported
+filename_prefix     <- paste0(name_of_comparison, '_', name_of_gene_set) # builds a reusable file name prefix by combining the comparison and gene set labels # e.g. → male_AD_vs_male_ctrol_C2
+```
+
+### Run clusterProfiler Overrepresentation Analysis
+
+We will use the enricher(), which is the universal generic function used to perform Over-Representation Analysis (ORA). It allows to run a hypergeometric test on any organism, custom gene set, or non-standard pathway database
+
+```{r}
+res <- enricher(gene          = df_sig$Symbol, #DEGs - UP/DOWN
+                pAdjustMethod = "BH", # correcting for multiple testing using Benjamini-Hochberg (FDR) method
+                TERM2GENE     = gene_sets, # gene set defined above
+                universe      = background_genes, #defined above
+                minGSSize     = min_geneset_size,
+                maxGSSize     = 500, # exclude very large gene sets as they tend to be too broad and non-specific
+                pvalueCutoff  = padj_cutoff) # only pathways with adjusted p-value < 0.05
+
+cat(paste("Total enriched pathways:", nrow(as.data.frame(res)), "\n"))
+```
+
+### Extract the enrichment results
+
+```{r}
+res_df <- as.data.frame(res)
+
+res_df_sig <- res_df %>%
+  mutate(minuslog10padj = -log10(p.adjust)) # add a new column converting adjusted p-values to -log10 scale for visualization
+
+head(res_df_sig)
+```
+
+### Saving the results
+
+```{r}
+#significant pathways
+write.csv(res_df_sig, file.path(out_path, paste0(filename_prefix, '_resclusterprofiler.csv')), row.names = FALSE)
+#significant DEG
+write.csv(df_sig,     file.path(out_path, paste0(name_of_comparison, '_degs.csv')),            row.names = FALSE)
+```
+
+## Visualizations
+
+### Applying filters
+-filter first for significance, then keywords
+
+```{r}
+res_filtered <- res
+
+res_filtered@result <- res@result %>%
+  filter(p.adjust < 0.05) %>%      # keep only significant
+  filter(str_detect(Description, "SYNAP|NEURO|SIGNAL|MEMBRAN|RECEPT|TRANS"))  # then keyword filter
+#adapt these keywords to your biological context
+
+cat("Significant pathways before keyword filter:", sum(res@result$p.adjust < 0.05), "\n")
+cat("Pathways after keyword filter:             ", nrow(res_filtered@result), "\n")
+```
+
+### Barplot arranged by counts
+
+```{r}
+#barplot() from clusterProfiler returns a ggplot object so it can be customized
+my_theme <- theme(
+  axis.text.y = element_text(size = 6),
+  axis.text.x = element_text(size = 8),
+  plot.title  = element_text(size = 12),
+  legend.text = element_text(size = 8)
+)
+
+
+p1 <- suppressWarnings(
+  barplot(res_filtered,
+          showCategory = 15,
+          title = paste(name_of_gene_set, "Enrichment\n", name_of_comparison))
+) + my_theme  
+
+print(p1)
+
+ggsave(filename = file.path(out_path, paste0(filename_prefix, "_barplot.pdf")),
+       plot = p1, width = 10, height = 8)
+```
+
+### Barplot arranged by q-values
+
+```{r}
+p1a <- suppressWarnings(
+  mutate(res_filtered %>% filter(!is.na(qvalue)), 
+       log10qvalue = -log(qvalue, base = 10)) %>%
+  barplot(x = "log10qvalue", showCategory = 15,
+          title = paste(name_of_gene_set, "Enrichment\n", name_of_comparison))
+) + my_theme
+
+print(p1a)
+
+ggsave(filename = file.path(out_path, paste0(filename_prefix, "_barplot2.pdf")),
+       plot = p1a, width = 10, height = 8)
+```
+
+### Dotplot
+
+```{r}
+
+p2 <- suppressWarnings(
+  dotplot(res_filtered, showCategory = 20,
+          title = paste(name_of_gene_set, "Enrichment\n", name_of_comparison),
+          x = "GeneRatio", color = "p.adjust", size = "Count") #gene ratio is DEGs in pathways/total DEGs for enrichment
+) + my_theme
+print(p2)
+
+ggsave(filename = file.path(out_path, paste0(filename_prefix, "_dotplot.pdf")),
+       plot = p2, width = 10, height = 8)
+```
+
+### Heatplot
+
+```{r}
+p3 <- suppressWarnings((heatplot(res_filtered, showCategory = 10)))
+p3 <- p3 +
+  theme(
+    axis.text.x = element_text(size = 4, angle = 90, hjust = 1, vjust = 0.5),  # gene names
+    axis.text.y = element_text(size = 6)                                         # pathways names
+  )
+print(p3)
+
+ggsave(filename = file.path(out_path, paste0(filename_prefix, "_heatplot.pdf")),
+       plot = p3, width = 14, height = 8)
+```
+
+### Enrichment map plot
+
+```{r}
+#Pairwise similarity is computed using the Jaccard similarity scores (from 0 to 1)
+#between pathways
+
+enrichres_sim <- pairwise_termsim(res_filtered)   
+
+# Plotting
+p4 <- emapplot(enrichres_sim, 
+               showCategory = 40,
+               label_format = 25,
+               node_label_size = 2)   
+print(p4)
+
+ggsave(filename = file.path(out_path, paste0(filename_prefix, "_enrichmentmap.pdf")),
+       plot = p4, width = 14, height = 12)
+```
+
+### Upset plot
+clusterProfiler uses ggplot-based upset, NOT the full UpSetR package
+For full upset plot, install UpSetR or ComplexUpset
+
+```{r}
+p5 <- upsetplot(res_filtered, n = 15)
+p5 <- p5 +
+  theme(axis.text.y = element_text(size = 6, face = "plain"),
+        axis.text.x = element_text(size = 8))
+print(p5)
+
+ggsave(filename = file.path(out_path, paste0(filename_prefix, "_upsetplot.pdf")),
+       plot = p5, width = 14, height = 8)
+```
+
+### Treeplot
+
+```{r}
+#Similar to Enrichment Map, pairwise similarity is computed using the Jaccard similarity scores (from 0 to 1), converted to distance (1-Jaccard) between pathways
+# we are using the already computed enrichres_sim in the Enrichment map plot section
+
+p6 <- treeplot(enrichres_sim,
+               label_format = 25,
+               fontsize_tiplab = 2,     # size of individual pathway labels (tips)
+               fontsize_cladelab = 2,   # size of cluster/group labels
+               nCluster = 5,            # adjust number of clusters if needed
+               extend = 0.01,           # reduce colored cluster area (default 0.3)
+               cladelab_offset = 6,  # bring cluster labels closer (default 1), increase to separate from pathways labels
+               hexpand = 0.7)          # expand horizontal space for pathway labels
+p6 <- p6 +
+  theme(
+    legend.text  = element_text(size = 8),  #  legend text
+    legend.title = element_text(size = 9)   #  legend title
+  )
+
+print(p6)
+
+ggsave(filename = file.path(out_path, paste0(filename_prefix, "_treeplot.pdf")),
+       plot = p6, width = 20, height = 8)
+```
+
+### Chord plot or chord diagram
+
+```{r}
+# Extract gene-pathway associations from res
+gene_pathway <- as.data.frame(res_filtered) %>%
+  dplyr::select(Description, geneID) %>%
+  dplyr::slice_head(n = 15) %>%              # top 15 pathways
+  tidyr::separate_longer_delim(geneID, delim = "/")    # one row per gene
+
+# Keep only genes appearing in multiple pathways (for meaningful chords)
+gene_counts <- gene_pathway %>%
+  dplyr::count(geneID) %>%
+  dplyr::filter(n > 4)                       # genes in more than 4 pathway
+
+gene_pathway_filtered <- gene_pathway %>%
+  dplyr::filter(geneID %in% gene_counts$geneID)
+
+# Create adjacency matrix
+chord_matrix <- table(gene_pathway_filtered$Description,
+                      gene_pathway_filtered$geneID)
+chord_matrix <- as.matrix(chord_matrix)
+
+# defining colors for pathways (one gradient)
+n_pathways <- nrow(chord_matrix)
+n_genes    <- ncol(chord_matrix)
+
+pathway_colors <- colorRampPalette(c("#2166AC", "#92C5DE"))(n_pathways)  # blue gradient
+names(pathway_colors) <- rownames(chord_matrix)   # assign to pathway names
+
+# defining colors for genes (different gradient)
+gene_colors <- colorRampPalette(c("#D6604D", "#FDDBC7"))(n_genes)  # red gradient
+names(gene_colors) <- colnames(chord_matrix)      # assign to gene names
+
+# combine into one named color vector
+all_colors <- c(pathway_colors, gene_colors)
+
+# Plot chord diagram
+pdf(file.path(out_path, paste0(filename_prefix, "_chordplot.pdf")),
+    width = 14, height = 14)
+
+set.seed(42)  # for reproducible chord diagram layout
+circos.clear()
+chordDiagram(
+  chord_matrix,
+  transparency = 0.4,
+  annotationTrack = "grid",
+  grid.col = all_colors, 
+  preAllocateTracks = list(track.height = 0.3)  # space for labels
+)
+
+# Add pathway labels
+circos.trackPlotRegion(
+  track.index = 1,
+  panel.fun = function(x, y) {
+    sector.name <- get.cell.meta.data("sector.index")
+    xlim        <- get.cell.meta.data("xlim")
+    circos.text(
+      mean(xlim), 0.5,
+      sector.name,
+      facing    = "clockwise",
+      niceFacing = TRUE,
+      adj        = c(0, 0.5),
+      cex        = 0.5          # adjust label size
+    )
+  },
+  bg.border = NA
+)
+
+circos.clear()
+dev.off()
+```
+
+```{r, results="hide"}
+writeLines(capture.output(sessionInfo()),
+           file.path(out_path, 'clusterProfiler_sessionInfo.txt'))
+```
