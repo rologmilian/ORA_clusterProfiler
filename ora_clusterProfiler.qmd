@@ -14,15 +14,18 @@ editor: visual
 ### Once BiocManager is installed, you can use it to install clusterProfiler, enrichplot
 
 ```{r, results="hide"}
-#For data management
-#install.packages("tidyverse")
-#install.packages("readxl")
-
 #BiocManager::install(c("clusterProfiler", "enrichplot", "ggupset", "msigdbr"))
 
+#For data management
+#"tidyverse"
+#"readxl"
+
 # For visualisation
-#install.packages("pheatmap")
-#install.packages("RColorBrewer")
+#"pheatmap"
+#"RColorBrewer"
+
+packages <- c("tidyverse", "readxl", "circlize", "pheatmap", "RColorBrewer")
+install.packages(setdiff(packages, rownames(installed.packages())))
 ```
 
 ### Load the required libraries
@@ -78,6 +81,12 @@ df_sig <- df %>%
   )) %>%
   filter(diffexpressed != "NO") %>% # keep only significantly UP or DOWN regulated genes
   distinct(Symbol, .keep_all = TRUE) # remove duplicate gene symbols, keeping all columns
+
+
+# Create UP and DOWN subsets from df_sig
+df_up   <- df_sig %>% filter(diffexpressed == "UP")
+df_down <- df_sig %>% filter(diffexpressed == "DOWN")
+
 
 # Report, sanity check
 cat("Found", nrow(df_sig), "DEGs\n")
@@ -152,7 +161,7 @@ filename_prefix     <- paste0(name_of_comparison, '_', name_of_gene_set) # build
 We will use the enricher(), which is the universal generic function used to perform Over-Representation Analysis (ORA). It allows to run a hypergeometric test on any organism, custom gene set, or non-standard pathway database
 
 ```{r}
-res <- enricher(gene          = df_sig$Symbol, #DEGs - UP/DOWN
+res <- enricher(gene          = df_sig$Symbol, #all DEGs or replace:  df_up$Symbol or df_down$Symbol
                 pAdjustMethod = "BH", # correcting for multiple testing using Benjamini-Hochberg (FDR) method
                 TERM2GENE     = gene_sets, # gene set defined above
                 universe      = background_genes, #defined above
