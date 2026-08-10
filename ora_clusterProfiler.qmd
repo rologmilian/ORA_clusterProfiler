@@ -7,25 +7,23 @@ editor: visual
 ### Install BiocManager, which is used to install and manage Bioconductor packages, if you don't have it already
 
 ```{r, results="hide"}
-#if (!require("BiocManager", quietly = TRUE))
-    #install.packages("BiocManager")
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
 ```
 
 ### Once BiocManager is installed, you can use it to install clusterProfiler, enrichplot
 
 ```{r, results="hide"}
-#BiocManager::install(c("clusterProfiler", "enrichplot", "ggupset", "msigdbr"))
+# Bioconductor packages
+bioc_packages <- c("clusterProfiler", "enrichplot", "ggupset", "msigdbr")
 
-#For data management
-#"tidyverse"
-#"readxl"
+BiocManager::install(setdiff(bioc_packages, rownames(installed.packages())), ask = FALSE)
 
-# For visualisation
-#"pheatmap"
-#"RColorBrewer"
 
-packages <- c("tidyverse", "readxl", "circlize", "pheatmap", "RColorBrewer")
-install.packages(setdiff(packages, rownames(installed.packages())))
+# CRAN packages
+cran_packages <- c("tidyverse", "readxl", "circlize", "pheatmap", "RColorBrewer")
+
+install.packages(setdiff(cran_packages, rownames(installed.packages())))
 ```
 
 ### Load the required libraries
