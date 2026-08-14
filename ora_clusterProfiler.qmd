@@ -58,8 +58,9 @@ out_path <- make_path("output") # create and store path to the output folder
 ### Upload the results of the DESeq2 analysis to the input folder
 
 ```{r}
-df <- read_excel(file.path(in_path, 'male_DEG_GSE125583.top.table.xlsx'))
-genes_in_data <- df$Symbol # extract the gene symbols column from the dataframe as a character vector
+#df <- read_excel(file.path(in_path, 'AD_vs_ctrol_male'))
+df <- read_csv(file.path(in_path, "AD_vs_ctrol_male.csv"))
+genes_in_data <- df$symbol # extract the gene symbols column from the dataframe as a character vector
 head(df)
 ```
 
@@ -68,7 +69,7 @@ head(df)
 ```{r}
 
 #Cleaning column names just in case
-colnames(df) <- trimws(colnames(df)) # when reading from Excel files, column names come in with hidden spaces- trimws cleans that up.
+#colnames(df) <- trimws(colnames(df)) # when reading from Excel files, column names come in with hidden spaces- trimws cleans that up.
 
 df_sig <- df %>%
   filter(!is.na(padj), !is.na(log2FoldChange)) %>% # remove rows with missing padj or log2FoldChange values
@@ -78,7 +79,7 @@ df_sig <- df %>%
     TRUE ~ "NO" # all remaining genes: not significantly differentially expressed
   )) %>%
   filter(diffexpressed != "NO") %>% # keep only significantly UP or DOWN regulated genes
-  distinct(Symbol, .keep_all = TRUE) # remove duplicate gene symbols, keeping all columns
+  distinct(symbol, .keep_all = TRUE) # remove duplicate gene symbols, keeping all columns
 
 
 # Create UP and DOWN subsets from df_sig
@@ -100,7 +101,7 @@ head(df_sig)
 
 ```{r}
 # # extracting all unique, non-missing gene symbols from the full dataset to use as the statistical background (universe) for ORA
-background_genes <- unique(na.omit(df$Symbol))
+background_genes <- unique(na.omit(df$symbol))
 
 cat("Number of background genes:", length(background_genes), "\n")
 ```
@@ -124,8 +125,8 @@ msigdbr_species()
 ### Define the gene sets or molecular signatures
 
 ```{r}
-name_of_gene_set <- 'C2_REACT' #simple character variable used as a label of collection
-gene_sets_df <- msigdbr(species = 'Homo sapiens', collection = 'C2', subcollection = 'CP:REACTOME')
+name_of_gene_set <- 'C5' #simple character variable used as a label of collection
+gene_sets_df <- msigdbr(species = 'Homo sapiens', collection = 'C5', subcollection = 'GO:BP')
 #gene_sets_df is a tibble containing all gene sets from the specified MSigDB 
 head(gene_sets_df)
 ```
@@ -148,9 +149,9 @@ head(gene_sets)
 ### Settings the variables
 
 ```{r}
-name_of_comparison  <- 'male_AD_vs_male_ctrol' ## label for the comparison
+name_of_comparison  <- 'AD_vs_ctrol_male' ## label for the comparison
 padj_cutoff         <- 0.05 # significance threshold for enriched pathways
-min_geneset_size    <- 5 # # minimum number of DEGs that must overlap with a pathway to be reported
+min_geneset_size    <- 7 # # minimum number of DEGs that must overlap with a pathway to be reported
 filename_prefix     <- paste0(name_of_comparison, '_', name_of_gene_set) # builds a reusable file name prefix by combining the comparison and gene set labels # e.g. → male_AD_vs_male_ctrol_C2
 ```
 
@@ -159,7 +160,7 @@ filename_prefix     <- paste0(name_of_comparison, '_', name_of_gene_set) # build
 We will use the enricher(), which is the universal generic function used to perform Over-Representation Analysis (ORA). It allows to run a hypergeometric test on any organism, custom gene set, or non-standard pathway database
 
 ```{r}
-res <- enricher(gene          = df_sig$Symbol, #all DEGs or replace:  df_up$Symbol or df_down$Symbol
+res <- enricher(gene          = df_sig$symbol, #all DEGs or replace:  df_up$Symbol or df_down$Symbol
                 pAdjustMethod = "BH", # correcting for multiple testing using Benjamini-Hochberg (FDR) method
                 TERM2GENE     = gene_sets, # gene set defined above
                 universe      = background_genes, #defined above
@@ -193,7 +194,8 @@ write.csv(df_sig,     file.path(out_path, paste0(name_of_comparison, '_degs.csv'
 ## Visualizations
 
 ### Applying filters
--filter first for significance, then keywords
+
+-filter first for significance, standardized enrichment score, ..., then keywords
 
 ```{r}
 res_filtered <- res
@@ -280,8 +282,7 @@ ggsave(filename = file.path(out_path, paste0(filename_prefix, "_heatplot.pdf")),
 ### Enrichment map plot
 
 ```{r}
-#Pairwise similarity is computed using the Jaccard similarity scores (from 0 to 1)
-#between pathways
+#Pairwise similarity is computed using the Jaccard similarity scores (from 0 to 1) between pathways
 
 enrichres_sim <- pairwise_termsim(res_filtered)   
 
@@ -297,8 +298,8 @@ ggsave(filename = file.path(out_path, paste0(filename_prefix, "_enrichmentmap.pd
 ```
 
 ### Upset plot
-clusterProfiler uses ggplot-based upset, NOT the full UpSetR package
-For full upset plot, install UpSetR or ComplexUpset
+
+clusterProfiler uses ggplot-based upset, NOT the full UpSetR package For full upset plot, install UpSetR or ComplexUpset
 
 ```{r}
 p5 <- upsetplot(res_filtered, n = 15)
