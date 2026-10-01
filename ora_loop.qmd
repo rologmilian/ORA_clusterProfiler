@@ -6,23 +6,23 @@ editor: visual
 
 This document runs the same Overrepresentation Analysis as `ora_clusterProfiler.qmd`, but for several molecular signatures (collections) at once. It is standalone: it loads the data and defines the DEGs itself. The results table and figures for each comparison and collection are saved in their own folder inside `output_loop/`, named comparison_collection (e.g. `output_loop/AD_vs_ctrol_male_C2KEGG/`), so they never overwrite the results of `ora_clusterProfiler.qmd` in `output/`.
 
-The settings below (DEG cutoffs, background, `padj_cutoff`, `min_geneset_size`) are the same as in `ora_clusterProfiler.qmd`. If you change them in one document, change them in the other too.
+
 
 ### Install the packages, if you don't have them already
 
 ```{r, results="hide"}
-# install.packages("BiocManager")
+# install.packages("BiocManager") # BiocManager installs and manages Bioconductor packages
 
 # Bioconductor packages
-#bioc_packages <- c("clusterProfiler", "enrichplot", "ggupset", "msigdbr")
+#bioc_packages <- c("clusterProfiler", "enrichplot", "ggupset", "msigdbr") # list of Bioconductor packages needed
 
-#BiocManager::install(setdiff(bioc_packages, rownames(installed.packages())), ask = FALSE)
+#BiocManager::install(setdiff(bioc_packages, rownames(installed.packages())), ask = FALSE) # install only the ones not installed yet
 
 
 # CRAN packages
-#cran_packages <- c("tidyverse", "here")
+#cran_packages <- c("tidyverse", "here") # list of CRAN packages needed
 
-#install.packages(setdiff(cran_packages, rownames(installed.packages())))
+#install.packages(setdiff(cran_packages, rownames(installed.packages()))) # install only the ones not installed yet
 ```
 
 ### Load the required libraries
@@ -53,8 +53,8 @@ out_path <- make_path("output_loop") # separate output folder, so results from o
 ### Upload the results of the DESeq2 analysis to the input folder
 
 ```{r}
-df <- read_csv(file.path(in_path, "AD_vs_ctrol_male.csv"))
-head(df)
+df <- read_csv(file.path(in_path, "AD_vs_ctrol_male.csv")) # read the DESeq2 results table from the input folder
+head(df) # show the first rows to check the file was read correctly
 ```
 
 ### Settings the variables
@@ -71,8 +71,8 @@ min_geneset_size    <- 7  # the minimum size of the gene set within the universe
 df_sig <- df %>%
   filter(!is.na(padj), !is.na(log2FoldChange)) %>% # remove rows with missing padj or log2FoldChange values
   mutate(diffexpressed = case_when( # create column diffexpress and classfies according to log2FC value
-    log2FoldChange > 0.5 & padj < 0.05 ~ "UP",
-    log2FoldChange < -0.5 & padj < 0.05 ~ "DOWN",
+    log2FoldChange > 0.5 & padj < 0.05 ~ "UP",   # upregulated: log2FC above 0.5 and significant
+    log2FoldChange < -0.5 & padj < 0.05 ~ "DOWN", # downregulated: log2FC below -0.5 and significant
     TRUE ~ "NO" # all remaining genes: not significantly differentially expressed
   )) %>%
   filter(diffexpressed != "NO") %>% # keep only significantly UP or DOWN regulated genes
@@ -81,12 +81,12 @@ df_sig <- df %>%
   distinct(symbol, .keep_all = TRUE) # remove duplicate gene symbols, keeping the most significant row
 
 # Report, sanity check
-cat("Found", nrow(df_sig), "DEGs\n")
-cat("UP:  ", sum(df_sig$diffexpressed == "UP"), "\n")
-cat("DOWN:", sum(df_sig$diffexpressed == "DOWN"), "\n")
+cat("Found", nrow(df_sig), "DEGs\n")                   # total number of DEGs
+cat("UP:  ", sum(df_sig$diffexpressed == "UP"), "\n")   # number of upregulated DEGs
+cat("DOWN:", sum(df_sig$diffexpressed == "DOWN"), "\n") # number of downregulated DEGs
 
 # named vector of log2FC, used to color the heatplot and the gene frequency barplot by direction
-gene_fc <- setNames(df_sig$log2FoldChange, df_sig$symbol)
+gene_fc <- setNames(df_sig$log2FoldChange, df_sig$symbol) # values are the log2FC, names are the gene symbols
 ```
 
 ### Prepare background gene list
@@ -95,7 +95,7 @@ gene_fc <- setNames(df_sig$log2FoldChange, df_sig$symbol)
 # extracting all unique, non-missing gene symbols from the full dataset to use as the statistical background (universe) for ORA
 background_genes <- unique(na.omit(df$symbol))
 
-cat("Number of background genes:", length(background_genes), "\n")
+cat("Number of background genes:", length(background_genes), "\n") # report the size of the background
 ```
 
 ### Define the collections to run
@@ -105,126 +105,133 @@ Use `msigdbr_collections()` to find the collection and subcollection codes. `key
 ```{r}
 # msigdbr_collections() # uncomment to see the available collections and subcollections
 
-collections <- tribble(
-  ~label,       ~collection, ~subcollection,    ~keywords,
+collections <- tribble( # a small table written row by row: one row per collection to run
+  ~label,       ~collection, ~subcollection,    ~keywords, # column names
   "C2KEGG",     "C2",        "CP:KEGG_MEDICUS", NA, # use "CP:KEGG_LEGACY" for the classic KEGG gene sets
-  "C2Reactome", "C2",        "CP:REACTOME",     NA,
-  "C5BP",       "C5",        "GO:BP",           NA,
-  "C7immune",   "C7",        "IMMUNESIGDB",     NA
+  "C2Reactome", "C2",        "CP:REACTOME",     NA, # Reactome pathways
+  "C5BP",       "C5",        "GO:BP",           NA, # GO Biological Process
+  "C7immune",   "C7",        "IMMUNESIGDB",     NA  # immunologic signatures
 )
 ```
 
 ### Define the functions used in the loop
 
+A function is a reusable block of code: it is defined once here and then called once for each collection. `run_collection()` does the whole analysis for one collection; `save_plot()` and `plot_gene_frequency()` are helpers it uses.
+
 ```{r}
 # theme shared by the barplot and dotplot
 my_theme <- theme(
-  axis.text.y = element_text(size = 6),
-  axis.text.x = element_text(size = 8),
-  plot.title  = element_text(size = 12),
-  legend.text = element_text(size = 8)
+  axis.text.y = element_text(size = 6),  # pathway names
+  axis.text.x = element_text(size = 8),  # x-axis values
+  plot.title  = element_text(size = 12), # plot title
+  legend.text = element_text(size = 8)   # legend text
 )
 
 # Saves a plot to PDF; if the plot fails (e.g. too few pathways), prints a message and keeps going
 save_plot <- function(make_plot, file, width, height) {
-  tryCatch({
-    p <- suppressWarnings(make_plot())
-    suppressWarnings(ggsave(filename = file, plot = p, width = width, height = height))
-  }, error = function(e) message("  Skipped ", basename(file), ": ", conditionMessage(e)))
+  tryCatch({ # run the code below; if it fails, run the error function instead of stopping
+    p <- suppressWarnings(make_plot()) # build the plot
+    suppressWarnings(ggsave(filename = file, plot = p, width = width, height = height)) # save it as a PDF
+  }, error = function(e) message("  Skipped ", basename(file), ": ", conditionMessage(e))) # report which plot failed and why
 }
 
 # Gene frequency barplot: number of filtered pathways each gene appears in, colored by the gene's log2 fold change
 plot_gene_frequency <- function(res_filtered, title, n_top_genes = 30) {
-  gene_freq <- as.data.frame(res_filtered) %>%
-    dplyr::select(ID, geneID) %>%
+  gene_freq <- as.data.frame(res_filtered) %>% # enrichment results as a table
+    dplyr::select(ID, geneID) %>% # keep the pathway ID and its genes (geneID lists the genes separated by "/")
     tidyr::separate_longer_delim(geneID, delim = "/") %>% # one row per gene per pathway
     dplyr::count(geneID, name = "n_pathways") %>%         # number of pathways each gene appears in
-    dplyr::mutate(log2FoldChange = gene_fc[geneID]) %>%
-    dplyr::arrange(desc(n_pathways)) %>%
-    dplyr::slice_head(n = n_top_genes)
+    dplyr::mutate(log2FoldChange = gene_fc[geneID]) %>%   # add each gene's log2FC
+    dplyr::arrange(desc(n_pathways)) %>%                  # most frequent genes first
+    dplyr::slice_head(n = n_top_genes)                    # keep the top genes
 
   fc_limit <- max(abs(gene_freq$log2FoldChange)) # symmetric color scale so 0 is always the neutral midpoint
 
   ggplot(gene_freq,
-         aes(x = reorder(geneID, -n_pathways), y = n_pathways, fill = log2FoldChange)) +
-    geom_col(width = 0.8) +
+         aes(x = reorder(geneID, -n_pathways), y = n_pathways, fill = log2FoldChange)) + # genes on x (sorted), pathway count on y, color by log2FC
+    geom_col(width = 0.8) + # draw the bars
     scale_fill_gradient2(low = "#2166AC", mid = "grey90", high = "#B2182B", # blue = DOWN, red = UP
-                         midpoint = 0, limits = c(-fc_limit, fc_limit)) +
-    labs(x = NULL, y = "Number of pathways", title = title) +
-    theme_minimal() +
-    theme(axis.text.x = element_text(size = 7, angle = 90, hjust = 1, vjust = 0.5),
-          panel.grid.major.x = element_blank(),
-          plot.title  = element_text(size = 12))
+                         midpoint = 0, limits = c(-fc_limit, fc_limit)) + # gray at log2FC = 0
+    labs(x = NULL, y = "Number of pathways", title = title) + # axis labels and title
+    theme_minimal() + # clean background
+    theme(axis.text.x = element_text(size = 7, angle = 90, hjust = 1, vjust = 0.5), # vertical gene names
+          panel.grid.major.x = element_blank(), # remove vertical grid lines
+          plot.title  = element_text(size = 12)) # title size
 }
 
 # Runs ORA for one collection, saves the results table and the figures
 run_collection <- function(label, collection, subcollection, keywords) {
-  cat("\n---", label, "---\n")
-  prefix    <- paste0(name_of_comparison, "_", label)
+  cat("\n---", label, "---\n") # print which collection is running
+  prefix    <- paste0(name_of_comparison, "_", label) # folder and file name prefix, e.g. AD_vs_ctrol_male_C2KEGG
   coll_path <- file.path(out_path, prefix) # one folder per comparison and collection, e.g. output_loop/AD_vs_ctrol_male_C2KEGG
-  if (!dir.exists(coll_path)) dir.create(coll_path, recursive = TRUE)
+  if (!dir.exists(coll_path)) dir.create(coll_path, recursive = TRUE) # create the folder if it doesn't exist
   # remove figures from a previous run so old plots are not mistaken for new results
-  loop_plots <- c("barplot", "dotplot", "heatplot", "genefrequency", "upsetplot", "enrichmentmap", "treeplot")
-  unlink(file.path(coll_path, paste0(prefix, "_", loop_plots, ".pdf")))
+  loop_plots <- c("barplot", "dotplot", "heatplot", "genefrequency", "upsetplot", "enrichmentmap", "treeplot") # figures made by the loop
+  unlink(file.path(coll_path, paste0(prefix, "_", loop_plots, ".pdf"))) # delete them if they exist
 
   # gene sets
-  gene_sets <- msigdbr(species = "Homo sapiens", collection = collection, subcollection = subcollection) %>%
-    dplyr::select(gs_name, gene_symbol)
+  gene_sets <- msigdbr(species = "Homo sapiens", collection = collection, subcollection = subcollection) %>% # download the gene sets of this collection
+    dplyr::select(gs_name, gene_symbol) # keep only the gene set name and gene symbol, the format enricher() needs
 
   # ORA
-  res <- enricher(gene          = df_sig$symbol,
-                  pAdjustMethod = "BH",
-                  TERM2GENE     = gene_sets,
-                  universe      = background_genes,
-                  minGSSize     = min_geneset_size,
-                  maxGSSize     = 500,
-                  pvalueCutoff  = padj_cutoff)
+  res <- enricher(gene          = df_sig$symbol,   # the DEGs
+                  pAdjustMethod = "BH",            # correcting for multiple testing using Benjamini-Hochberg (FDR) method
+                  TERM2GENE     = gene_sets,       # gene sets of this collection
+                  universe      = background_genes, # background genes
+                  minGSSize     = min_geneset_size, # minimum gene set size
+                  maxGSSize     = 500,             # exclude very large, non-specific gene sets
+                  pvalueCutoff  = padj_cutoff)     # significance threshold
 
   # results table (all significant pathways)
-  res_df_sig <- as.data.frame(res) %>%
-    mutate(minuslog10padj = -log10(p.adjust))
-  write.csv(res_df_sig, file.path(coll_path, paste0(prefix, "_resclusterprofiler.csv")), row.names = FALSE)
+  res_df_sig <- as.data.frame(res) %>% # significant pathways as a table
+    mutate(minuslog10padj = -log10(p.adjust)) # add -log10 adjusted p-value for visualization
+  write.csv(res_df_sig, file.path(coll_path, paste0(prefix, "_resclusterprofiler.csv")), row.names = FALSE) # save the table
 
   # filters for plotting: significance, then keywords
-  res_filtered <- res
+  res_filtered <- res # copy of the results, to be filtered for plotting
   res_filtered@result <- res@result %>%
-    filter(p.adjust <= padj_cutoff, qvalue <= res@qvalueCutoff)
-  if (!is.na(keywords)) {
+    filter(p.adjust <= padj_cutoff, qvalue <= res@qvalueCutoff) # keep only significant pathways
+  if (!is.na(keywords)) { # if this collection has keywords...
     res_filtered@result <- res_filtered@result %>%
-      filter(str_detect(Description, keywords))
+      filter(str_detect(Description, keywords)) # ...keep only pathways whose name contains them
   }
 
-  n_significant <- nrow(res_df_sig)
-  n_plotted     <- nrow(res_filtered@result)
-  cat("Gene sets:", length(unique(gene_sets$gs_name)),
+  n_significant <- nrow(res_df_sig)           # number of significant pathways
+  n_plotted     <- nrow(res_filtered@result)  # number of pathways left after the keyword filter
+  cat("Gene sets:", length(unique(gene_sets$gs_name)), # report the counts
       "| significant pathways:", n_significant,
       "| after keyword filter:", n_plotted, "\n")
 
-  if (n_plotted == 0) {
+  if (n_plotted == 0) { # nothing to plot: report it and stop here for this collection
     message("  No pathways to plot for ", label)
-    return(tibble(label, n_significant, n_plotted))
+    return(tibble(label, n_significant, n_plotted)) # one row for the summary table
   }
 
-  title    <- paste(label, "Enrichment\n", name_of_comparison)
-  pdf_file <- function(plot_name) file.path(coll_path, paste0(prefix, "_", plot_name, ".pdf"))
+  title    <- paste(label, "Enrichment\n", name_of_comparison) # plot title, e.g. "C2KEGG Enrichment / AD_vs_ctrol_male"
+  pdf_file <- function(plot_name) file.path(coll_path, paste0(prefix, "_", plot_name, ".pdf")) # builds the PDF path for each figure
 
   # figures
+  # barplot: top pathways by gene count
   save_plot(function() barplot(res_filtered, showCategory = 15, title = title) + my_theme,
             pdf_file("barplot"), width = 10, height = 8)
 
+  # dotplot: gene ratio on x, colored by adjusted p-value, dot size by gene count
   save_plot(function() dotplot(res_filtered, showCategory = 20, title = title,
                                x = "GeneRatio", color = "p.adjust", size = "Count") + my_theme,
             pdf_file("dotplot"), width = 10, height = 8)
 
+  # heatplot: genes in each pathway, colored by log2FC
   save_plot(function() heatplot(res_filtered, showCategory = 10, foldChange = gene_fc) +
-              theme(axis.text.x = element_text(size = 4, angle = 90, hjust = 1, vjust = 0.5),
-                    axis.text.y = element_text(size = 6)),
+              theme(axis.text.x = element_text(size = 4, angle = 90, hjust = 1, vjust = 0.5), # gene names
+                    axis.text.y = element_text(size = 6)),                                       # pathway names
             pdf_file("heatplot"), width = 14, height = 8)
 
+  # gene frequency barplot: genes appearing in the most pathways
   save_plot(function() plot_gene_frequency(res_filtered,
                                            title = paste(label, "- most frequent genes in filtered pathways\n", name_of_comparison)),
             pdf_file("genefrequency"), width = 10, height = 6)
 
+  # upset plot: overlap of genes between pathways
   save_plot(function() upsetplot(res_filtered, n = 15) +
               theme(axis.text.y = element_text(size = 6, face = "plain"),
                     axis.text.x = element_text(size = 8)),
@@ -232,20 +239,22 @@ run_collection <- function(label, collection, subcollection, keywords) {
 
   # enrichment map and treeplot need pathways to compare, so they are skipped with fewer than 3
   if (n_plotted >= 3) {
-    enrichres_sim <- pairwise_termsim(res_filtered)
+    enrichres_sim <- pairwise_termsim(res_filtered) # similarity between pathways (Jaccard), used by both plots
 
+    # enrichment map: network of pathways that share genes
     save_plot(function() emapplot(enrichres_sim, showCategory = 40,
                                   label_format = 25, node_label_size = 2),
               pdf_file("enrichmentmap"), width = 14, height = 12)
 
+    # treeplot: pathways clustered by similarity
     save_plot(function() treeplot(enrichres_sim,
-                                  label_format = 25,
-                                  fontsize_tiplab = 2,
-                                  fontsize_cladelab = 2,
+                                  label_format = 25,       # wrap long pathway names
+                                  fontsize_tiplab = 2,     # size of individual pathway labels (tips)
+                                  fontsize_cladelab = 2,   # size of cluster/group labels
                                   nCluster = min(5, n_plotted - 1), # fewer clusters when there are few pathways
-                                  extend = 0.01,
-                                  cladelab_offset = 6,
-                                  hexpand = 0.7) +
+                                  extend = 0.01,           # reduce colored cluster area
+                                  cladelab_offset = 6,     # distance of cluster labels from pathway labels
+                                  hexpand = 0.7) +         # expand horizontal space for pathway labels
                 theme(legend.text  = element_text(size = 8),
                       legend.title = element_text(size = 9)),
               pdf_file("treeplot"), width = 20, height = 8)
@@ -253,22 +262,22 @@ run_collection <- function(label, collection, subcollection, keywords) {
     message("  Skipped enrichment map and treeplot for ", label, ": fewer than 3 pathways")
   }
 
-  tibble(label, n_significant, n_plotted)
+  tibble(label, n_significant, n_plotted) # one row for the summary table
 }
 ```
 
 ### Run the loop
 
 ```{r}
-loop_summary <- pmap_dfr(collections, run_collection) # runs run_collection() once per row of collections
+loop_summary <- pmap_dfr(collections, run_collection) # runs run_collection() once per row of collections and combines the rows returned
 
-loop_summary
+loop_summary # summary table: number of significant and plotted pathways per collection
 ```
 
 ```{r, results="hide"}
 #significant DEG
-write.csv(df_sig, file.path(out_path, paste0(name_of_comparison, '_degs.csv')), row.names = FALSE)
+write.csv(df_sig, file.path(out_path, paste0(name_of_comparison, '_degs.csv')), row.names = FALSE) # save the DEG table for this comparison
 
 writeLines(capture.output(sessionInfo()),
-           file.path(out_path, 'clusterProfiler_loop_sessionInfo.txt'))
+           file.path(out_path, 'clusterProfiler_loop_sessionInfo.txt')) # save R and package versions, for reproducibility
 ```
