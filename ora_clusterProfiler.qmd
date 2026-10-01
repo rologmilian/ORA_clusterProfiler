@@ -7,23 +7,22 @@ editor: visual
 ### Install BiocManager, which is used to install and manage Bioconductor packages, if you don't have it already
 
 ```{r, results="hide"}
-if (!require("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
+   # install.packages("BiocManager")
 ```
 
 ### Once BiocManager is installed, you can use it to install clusterProfiler, enrichplot
 
 ```{r, results="hide"}
 # Bioconductor packages
-bioc_packages <- c("clusterProfiler", "enrichplot", "ggupset", "msigdbr")
+#bioc_packages <- c("clusterProfiler", "enrichplot", "ggupset", "msigdbr")
 
-BiocManager::install(setdiff(bioc_packages, rownames(installed.packages())), ask = FALSE)
+#BiocManager::install(setdiff(bioc_packages, rownames(installed.packages())), ask = FALSE)
 
 
 # CRAN packages
-cran_packages <- c("tidyverse", "readxl", "circlize", "pheatmap", "RColorBrewer")
+#cran_packages <- c("tidyverse", "circlize", "pheatmap", "RColorBrewer", "here")
 
-install.packages(setdiff(cran_packages, rownames(installed.packages())))
+#install.packages(setdiff(cran_packages, rownames(installed.packages())))
 ```
 
 ### Load the required libraries
@@ -36,15 +35,15 @@ library(pheatmap)         # heatmaps with clustering
 library(clusterProfiler)  # enrichment analysis (ORA and GSEA)
 library(enrichplot)       # visualization of enrichment analysis results
 library(msigdbr)          # molecular signatures database (pathways, biological functions, etc.)
-library(readxl)           # reading Excel files into R
 library(circlize)         # circular/ chord diagrams visualizations
+library(here)             # builds file paths from the project root (the folder containing ORA.Rproj)
 ```
 
 ### Set the path to your folder
 
 ```{r, results="hide"}
 ## Set relevant paths
-base_path <- getwd() # get the current working directory as the root path
+base_path <- here() # root of the project (the folder containing ORA.Rproj)
 make_path <- function(folder) {
   path <- file.path(base_path, folder) # build the full path by appending folder name to base path
   if (!dir.exists(path)) dir.create(path, recursive = TRUE) # create the folder if it doesn't exist
@@ -58,7 +57,7 @@ out_path <- make_path("output") # create and store path to the output folder
 ### Upload the results of the DESeq2 analysis to the input folder
 
 ```{r}
-#df <- read_excel(file.path(in_path, 'AD_vs_ctrol_male'))
+
 df <- read_csv(file.path(in_path, "AD_vs_ctrol_male.csv"))
 genes_in_data <- df$symbol # extract the gene symbols column from the dataframe as a character vector
 head(df)
@@ -68,9 +67,6 @@ head(df)
 
 ```{r}
 
-#Cleaning column names just in case
-#colnames(df) <- trimws(colnames(df)) # when reading from Excel files, column names come in with hidden spaces- trimws cleans that up.
-
 df_sig <- df %>%
   filter(!is.na(padj), !is.na(log2FoldChange)) %>% # remove rows with missing padj or log2FoldChange values
   mutate(diffexpressed = case_when( # create column diffexpress and classfies according to log2FC value
@@ -79,7 +75,9 @@ df_sig <- df %>%
     TRUE ~ "NO" # all remaining genes: not significantly differentially expressed
   )) %>%
   filter(diffexpressed != "NO") %>% # keep only significantly UP or DOWN regulated genes
-  distinct(symbol, .keep_all = TRUE) # remove duplicate gene symbols, keeping all columns
+  filter(!is.na(symbol)) %>% # remove genes without a gene symbol
+  arrange(padj) %>% # sort by padj so the most significant row comes first
+  distinct(symbol, .keep_all = TRUE) # remove duplicate gene symbols, keeping the most significant row
 
 
 # Create UP and DOWN subsets from df_sig
@@ -125,7 +123,7 @@ msigdbr_species()
 ### Define the gene sets or molecular signatures
 
 ```{r}
-name_of_gene_set <- 'C5' #simple character variable used as a label of collection
+name_of_gene_set <- 'C5BP' #simple character variable used as a label of collection
 gene_sets_df <- msigdbr(species = 'Homo sapiens', collection = 'C5', subcollection = 'GO:BP')
 #gene_sets_df is a tibble containing all gene sets from the specified MSigDB 
 head(gene_sets_df)
@@ -151,8 +149,10 @@ head(gene_sets)
 ```{r}
 name_of_comparison  <- 'AD_vs_ctrol_male' ## label for the comparison
 padj_cutoff         <- 0.05 # significance threshold for enriched pathways
-min_geneset_size    <- 7 # # minimum number of DEGs that must overlap with a pathway to be reported
-filename_prefix     <- paste0(name_of_comparison, '_', name_of_gene_set) # builds a reusable file name prefix by combining the comparison and gene set labels # e.g. → male_AD_vs_male_ctrol_C2
+min_geneset_size    <- 7  # the minimum size of the gene set within the universe
+filename_prefix     <- paste0(name_of_comparison, '_', name_of_gene_set) # builds a reusable file name prefix by combining the comparison and gene set labels # e.g. → AD_vs_ctrol_male_C5BP
+results_path        <- file.path(out_path, filename_prefix) # folder for this comparison and gene set, e.g. output/AD_vs_ctrol_male_C5BP
+if (!dir.exists(results_path)) dir.create(results_path, recursive = TRUE) # create the folder if it doesn't exist
 ```
 
 ### Run clusterProfiler Overrepresentation Analysis
@@ -160,7 +160,7 @@ filename_prefix     <- paste0(name_of_comparison, '_', name_of_gene_set) # build
 We will use the enricher(), which is the universal generic function used to perform Over-Representation Analysis (ORA). It allows to run a hypergeometric test on any organism, custom gene set, or non-standard pathway database
 
 ```{r}
-res <- enricher(gene          = df_sig$symbol, #all DEGs or replace:  df_up$Symbol or df_down$Symbol
+res <- enricher(gene          = df_sig$symbol, #all DEGs or replace:  df_up$symbol or df_down$symbol
                 pAdjustMethod = "BH", # correcting for multiple testing using Benjamini-Hochberg (FDR) method
                 TERM2GENE     = gene_sets, # gene set defined above
                 universe      = background_genes, #defined above
@@ -186,7 +186,7 @@ head(res_df_sig)
 
 ```{r}
 #significant pathways
-write.csv(res_df_sig, file.path(out_path, paste0(filename_prefix, '_resclusterprofiler.csv')), row.names = FALSE)
+write.csv(res_df_sig, file.path(results_path, paste0(filename_prefix, '_resclusterprofiler.csv')), row.names = FALSE)
 #significant DEG
 write.csv(df_sig,     file.path(out_path, paste0(name_of_comparison, '_degs.csv')),            row.names = FALSE)
 ```
@@ -200,12 +200,15 @@ write.csv(df_sig,     file.path(out_path, paste0(name_of_comparison, '_degs.csv'
 ```{r}
 res_filtered <- res
 
-res_filtered@result <- res@result %>%
-  filter(p.adjust < 0.05) %>%      # keep only significant
-  filter(str_detect(Description, "SYNAP|NEURO|SIGNAL|MEMBRAN|RECEPT|TRANS"))  # then keyword filter
+# same cutoffs enricher() applies in as.data.frame(res): padj_cutoff and the default qvalueCutoff (0.2)
+res_significant <- res@result %>%
+  filter(p.adjust <= padj_cutoff, qvalue <= res@qvalueCutoff) # keep only significant
+
+res_filtered@result <- res_significant %>%
+  filter(str_detect(Description, "SYNAP|NEURO|SIGNAL|MEMBRAN|RECEPT|TRANSM"))  # then keyword filter
 #adapt these keywords to your biological context
 
-cat("Significant pathways before keyword filter:", sum(res@result$p.adjust < 0.05), "\n")
+cat("Significant pathways before keyword filter:", nrow(res_significant), "\n")
 cat("Pathways after keyword filter:             ", nrow(res_filtered@result), "\n")
 ```
 
@@ -229,7 +232,7 @@ p1 <- suppressWarnings(
 
 print(p1)
 
-ggsave(filename = file.path(out_path, paste0(filename_prefix, "_barplot.pdf")),
+ggsave(filename = file.path(results_path, paste0(filename_prefix, "_barplot.pdf")),
        plot = p1, width = 10, height = 8)
 ```
 
@@ -238,14 +241,14 @@ ggsave(filename = file.path(out_path, paste0(filename_prefix, "_barplot.pdf")),
 ```{r}
 p1a <- suppressWarnings(
   mutate(res_filtered %>% filter(!is.na(qvalue)), 
-       log10qvalue = -log(qvalue, base = 10)) %>%
-  barplot(x = "log10qvalue", showCategory = 15,
+       minuslog10q = -log(qvalue, base = 10)) %>%
+  barplot(x = "minuslog10q", showCategory = 15,
           title = paste(name_of_gene_set, "Enrichment\n", name_of_comparison))
 ) + my_theme
 
 print(p1a)
 
-ggsave(filename = file.path(out_path, paste0(filename_prefix, "_barplot2.pdf")),
+ggsave(filename = file.path(results_path, paste0(filename_prefix, "_barplot2.pdf")),
        plot = p1a, width = 10, height = 8)
 ```
 
@@ -260,14 +263,16 @@ p2 <- suppressWarnings(
 ) + my_theme
 print(p2)
 
-ggsave(filename = file.path(out_path, paste0(filename_prefix, "_dotplot.pdf")),
+ggsave(filename = file.path(results_path, paste0(filename_prefix, "_dotplot.pdf")),
        plot = p2, width = 10, height = 8)
 ```
 
 ### Heatplot
 
 ```{r}
-p3 <- suppressWarnings((heatplot(res_filtered, showCategory = 10)))
+gene_fc <- setNames(df_sig$log2FoldChange, df_sig$symbol) # named vector of log2FC, used to color the tiles by direction
+
+p3 <- suppressWarnings((heatplot(res_filtered, showCategory = 10, foldChange = gene_fc)))
 p3 <- p3 +
   theme(
     axis.text.x = element_text(size = 4, angle = 90, hjust = 1, vjust = 0.5),  # gene names
@@ -275,8 +280,42 @@ p3 <- p3 +
   )
 print(p3)
 
-ggsave(filename = file.path(out_path, paste0(filename_prefix, "_heatplot.pdf")),
+ggsave(filename = file.path(results_path, paste0(filename_prefix, "_heatplot.pdf")),
        plot = p3, width = 14, height = 8)
+```
+
+### Gene frequency barplot
+
+Number of filtered pathways each gene appears in, colored by the gene's log2 fold change
+
+```{r}
+n_top_genes <- 30 # number of most frequent genes to show
+
+gene_freq <- as.data.frame(res_filtered) %>%
+  dplyr::select(ID, geneID) %>%
+  tidyr::separate_longer_delim(geneID, delim = "/") %>% # one row per gene per pathway
+  dplyr::count(geneID, name = "n_pathways") %>%         # number of pathways each gene appears in
+  dplyr::mutate(log2FoldChange = gene_fc[geneID]) %>%   # add log2FC from the DEGs (gene_fc defined in the Heatplot section)
+  dplyr::arrange(desc(n_pathways)) %>%
+  dplyr::slice_head(n = n_top_genes)
+
+fc_limit <- max(abs(gene_freq$log2FoldChange)) # symmetric color scale so 0 is always the neutral midpoint
+
+p_genes <- ggplot(gene_freq,
+                  aes(x = reorder(geneID, -n_pathways), y = n_pathways, fill = log2FoldChange)) +
+  geom_col(width = 0.8) +
+  scale_fill_gradient2(low = "#2166AC", mid = "grey90", high = "#B2182B", # blue = DOWN, red = UP
+                       midpoint = 0, limits = c(-fc_limit, fc_limit)) +
+  labs(x = NULL, y = "Number of pathways",
+       title = paste("Most frequent genes in filtered pathways\n", name_of_comparison)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(size = 7, angle = 90, hjust = 1, vjust = 0.5), # gene names
+        panel.grid.major.x = element_blank(),
+        plot.title  = element_text(size = 12))
+print(p_genes)
+
+ggsave(filename = file.path(results_path, paste0(filename_prefix, "_genefrequency.pdf")),
+       plot = p_genes, width = 10, height = 6)
 ```
 
 ### Enrichment map plot
@@ -293,7 +332,7 @@ p4 <- emapplot(enrichres_sim,
                node_label_size = 2)   
 print(p4)
 
-ggsave(filename = file.path(out_path, paste0(filename_prefix, "_enrichmentmap.pdf")),
+ggsave(filename = file.path(results_path, paste0(filename_prefix, "_enrichmentmap.pdf")),
        plot = p4, width = 14, height = 12)
 ```
 
@@ -306,10 +345,10 @@ p5 <- upsetplot(res_filtered, n = 15)
 p5 <- p5 +
   theme(axis.text.y = element_text(size = 6, face = "plain"),
         axis.text.x = element_text(size = 8))
-print(p5)
+suppressWarnings(print(p5)) # hides a harmless ggupset warning about the deprecated `size` aesthetic
 
-ggsave(filename = file.path(out_path, paste0(filename_prefix, "_upsetplot.pdf")),
-       plot = p5, width = 14, height = 8)
+suppressWarnings(ggsave(filename = file.path(results_path, paste0(filename_prefix, "_upsetplot.pdf")),
+                        plot = p5, width = 14, height = 8))
 ```
 
 ### Treeplot
@@ -334,7 +373,7 @@ p6 <- p6 +
 
 print(p6)
 
-ggsave(filename = file.path(out_path, paste0(filename_prefix, "_treeplot.pdf")),
+ggsave(filename = file.path(results_path, paste0(filename_prefix, "_treeplot.pdf")),
        plot = p6, width = 20, height = 8)
 ```
 
@@ -345,6 +384,9 @@ ggsave(filename = file.path(out_path, paste0(filename_prefix, "_treeplot.pdf")),
 gene_pathway <- as.data.frame(res_filtered) %>%
   dplyr::select(Description, geneID) %>%
   dplyr::slice_head(n = 15) %>%              # top 15 pathways
+  dplyr::mutate(Description = Description %>%
+                  str_remove("^GOBP_") %>%   # shorten names for the labels
+                  str_replace_all("_", " ")) %>%
   tidyr::separate_longer_delim(geneID, delim = "/")    # one row per gene
 
 # Keep only genes appearing in multiple pathways (for meaningful chords)
@@ -375,39 +417,43 @@ names(gene_colors) <- colnames(chord_matrix)      # assign to gene names
 all_colors <- c(pathway_colors, gene_colors)
 
 # Plot chord diagram
-pdf(file.path(out_path, paste0(filename_prefix, "_chordplot.pdf")),
+# circlize draws with base graphics, so the plot is wrapped in a function to draw it twice: in the document and in the PDF
+draw_chord <- function() {
+  circos.clear()
+  chordDiagram(
+    chord_matrix,
+    transparency = 0.4,
+    annotationTrack = "grid",
+    grid.col = all_colors,
+    preAllocateTracks = list(track.height = 0.3)  # space for labels
+  )
+
+  # Add pathway and gene labels
+  circos.trackPlotRegion(
+    track.index = 1,
+    panel.fun = function(x, y) {
+      sector.name <- get.cell.meta.data("sector.index")
+      xlim        <- get.cell.meta.data("xlim")
+      circos.text(
+        mean(xlim), 0.5,
+        sector.name,
+        facing    = "clockwise",
+        niceFacing = TRUE,
+        adj        = c(0, 0.5),
+        cex        = 0.5          # adjust label size
+      )
+    },
+    bg.border = NA
+  )
+  circos.clear()
+}
+
+draw_chord() # show in the document
+
+pdf(file.path(results_path, paste0(filename_prefix, "_chordplot.pdf")),
     width = 14, height = 14)
-
-set.seed(42)  # for reproducible chord diagram layout
-circos.clear()
-chordDiagram(
-  chord_matrix,
-  transparency = 0.4,
-  annotationTrack = "grid",
-  grid.col = all_colors, 
-  preAllocateTracks = list(track.height = 0.3)  # space for labels
-)
-
-# Add pathway labels
-circos.trackPlotRegion(
-  track.index = 1,
-  panel.fun = function(x, y) {
-    sector.name <- get.cell.meta.data("sector.index")
-    xlim        <- get.cell.meta.data("xlim")
-    circos.text(
-      mean(xlim), 0.5,
-      sector.name,
-      facing    = "clockwise",
-      niceFacing = TRUE,
-      adj        = c(0, 0.5),
-      cex        = 0.5          # adjust label size
-    )
-  },
-  bg.border = NA
-)
-
-circos.clear()
-dev.off()
+draw_chord() # save to PDF
+invisible(dev.off())
 ```
 
 ```{r, results="hide"}
